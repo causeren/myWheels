@@ -1,0 +1,96 @@
+---
+# description: adapt to elastic5 plugins x-pack
+install_path: "/opt/"
+
+es_version: "5.6.10"
+
+es_file: "elasticsearch-{{ es_version }}.tar.gz"
+es_file_url: "https://artifacts.elastic.co/downloads/elasticsearch/{{ es_file }}"
+
+es_user: elastic5
+es_group: elastic5
+
+es_http_host: "0.0.0.0"
+es_http_port: 9200
+es_transport_port: 9300
+
+es_max_open_files: 165535
+es_max_map_count: 262155
+es_max_processes: 4096
+
+es_service_name: "elasticsearch{% if es_http_port != 9200 %}{{ es_http_port }}{% endif %}"
+es_service_start: false
+
+es_home_dir: "/opt/elasticsearch"
+es_pid_dir: "/var/run/elasticsearch"
+es_log_dir: "/{{ es_home_dir }}/logs"
+es_conf_dir: "/{{ es_home_dir }}/config"
+es_data_dir: "/{{ es_home_dir }}/data"
+es_script_dir: "/{{ es_home_dir }}/scripts"
+
+es_cluster_name: "elastic5_xpack"
+es_node_name: ""
+es_node_rack: ""
+
+es_unicast_hosts: ["192.168.2.211:9300","192.168.2.212:9300","192.168.2.213:9300"]
+es_minimum_master_nodes: "2"
+
+es_scripts_fileglob: ""
+es_install_plugins: []
+es_config: ""
+
+es_heap_ms: "1g"
+es_heap_mx: "1g"
+es_jvm_options: ""
+es_java_home: ""
+es_g1gc: false
+
+es_node_data: true
+es_node_master: true
+es_node_ingest: true
+es_node_client: true
+
+
+[root@masterp elasticsearch-2.4.6]# grep -v "^#\|^$" config/elasticsearch.yml 
+cluster.name: devES
+node.name: masterp
+node.master: true
+node.data: true
+path.data: /opt/elasticsearch-2.4.6/data
+path.logs: /opt/elasticsearch-2.4.6/logs
+path.plugins: /opt/elasticsearch-2.4.6/plugins
+path.scripts: /opt/elasticsearch-2.4.6/scripts
+bootstrap.mlockall: true
+network.host: 192.168.8.123
+http.port: 9200
+discovery.zen.ping.unicast.hosts: ["192.168.8.123:9300","192.168.8.124:9300","192.168.8.125:9300"]
+discovery.zen.minimum_master_nodes: 2
+gateway.recover_after_nodes: 3
+gateway.recover_after_time: 5m
+gateway.expected_nodes: 1
+script.engine.groovy.inline.search: on
+script.engine.groovy.inline.aggs: on
+indices.recovery.max_bytes_per_sec: 100mb
+indices.recovery.concurrent_streams: 10
+
+
+{% if es_node_master %}
+node.master: true
+node.data: {{ (es_node_data | bool) | ternary('true','false') }}
+node.ingest: {{ (es_node_ingest | bool) | ternary('true','false') }}
+{% elif es_node_data %}
+node.master: {{ (es_node_master | bool) | ternary('true','false') }}
+node.data: true
+node.ingest: {{ (es_node_ingest | bool) | ternary('true','false') }}
+{% elif es_node_ingest %}
+node.master: false
+node.data: false
+node.ingest: true
+search.remote.connect: false
+{% endif %}
+{% if es_node_client %}
+node.master: false 
+node.data: false 
+node.ingest: false 
+search.remote.connect: false 
+{% endif %}
