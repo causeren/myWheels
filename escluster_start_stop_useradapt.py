@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 
 """The script to start or stop the es cluster.
 author: icefiva
@@ -22,10 +22,11 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 def start_es(es_nodes_cfg):
-    with (open(es_nodes_cfg,'r')) as f:
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    with open(es_nodes_cfg,'r') as f:
         for line in f.readlines():
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(line,22,'elastic5','elastic5')
             try:
                 stdin, stdout, stderr = ssh.exec_command('(source /etc/profile;cd /opt/elasticsearch-5.6.10;bin/elasticsearch -d)')
@@ -42,16 +43,16 @@ def start_es(es_nodes_cfg):
             jpsout = stdout.read().rstrip('\n')
             for jps_row in jpsout.split('\n'):
                 if line.find('Elasticsearch'): print('node ' + line + ' success start the es.')
-            ssh.close()
             #print(line)
+    ssh.close()
     f.close()
 
 def stop_es(es_nodes_cfg):
-
-    with (open(es_nodes_cfg,'r')) as f:
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    with open(es_nodes_cfg,'r') as f:
         for line in f.readlines():
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(line,22,'elastic5','elastic5')
             try:
                 stdin, stdout, stderr = ssh.exec_command('source /etc/profile;jps')
@@ -73,17 +74,22 @@ def stop_es(es_nodes_cfg):
                             sys.exit(1)
             print('success to kill node ' + line.rstrip('\n') + '\'s es.')
             time.sleep(5)
-            ssh.close()
+    ssh.close()
     f.close()
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 1:
+    if len(sys.argv) < 3:
         print('Usage:python es_kibanba_start_stop_useradapt.py <config_ip_file> <start or stop>')
         sys.exit(1)
 
     es_nodes_cfg = sys.argv[1]
     tasktype = sys.argv[2]
+    if os.path.exists(es_nodes_cfg):
+        pass
+    else:
+        print('Coun\'t not find the config file')
+        sys.exit(1) 
     if tasktype == "start":
         start_es(es_nodes_cfg)
     elif tasktype == "stop":
